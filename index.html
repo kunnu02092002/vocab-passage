@@ -164,12 +164,13 @@
         <div class="toggle-row">
           <span>AI Provider</span>
           <select id="providerSelect" class="btn btn-secondary btn-small" style="width:auto; padding:6px 12px; font-size:0.9rem;" onchange="updateProvider()">
-            <option value="groq">🦙 Groq (Llama 3.3)</option>
-            <option value="gemini">💎 Gemini 3.5 Flash</option>
+            <option value="groq">🦙 Groq (Llama 3.3) — FAST ⚡</option>
+            <option value="gemini">💎 Gemini 3.5 Flash (slower)</option>
 
 
             <option value="auto">🔄 Auto (Groq → Gemini fallback)</option>
           </select>
+
         </div>
       </div>
 
@@ -229,7 +230,8 @@ let isPlaying = false;
 let currentParagraphIdx = -1;
 let speechSynth = window.speechSynthesis;
 let speechQueue = [];
-let currentProvider = 'auto'; // 'groq', 'gemini', or 'auto'
+let currentProvider = 'groq'; // 'groq' (fast, default), 'gemini' (slower), or 'auto'
+
 
 async function init() {
   try {
