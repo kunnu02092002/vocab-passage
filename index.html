@@ -303,28 +303,30 @@ async function callGroq() {
     `  ${i+1}. ${w.kanji || '(no kanji)'} (${w.hiragana}) — ${w.english}`
   ).join('\n');
 
-  const prompt = `You are a Japanese language teacher. Write a VERY LONG, DETAILED connected passage at N3 level that naturally incorporates the following 50 vocabulary words:
+  const prompt = `You are a Japanese language teacher. Write a connected N3-level reading passage that naturally incorporates the following 50 vocabulary words:
+
 
 ${wordList}
 
 Rules:
 - Use EVERY word at least once (aim for 100% usage)
 - DO NOT repeat the same vocabulary word multiple times in close proximity — use each word naturally once, then move on
-- Naturally weave the words into a coherent, rich passage (like a short story or essay)
+- Naturally weave the words into a coherent passage (like a short story)
 - Add furigana in the format 愛(あい) ONLY for words that have kanji — do NOT add furigana for words already written in hiragana/katakana (e.g., write ますます not ますます(ますます), write ボール not ボール(ぼーる))
 - Keep grammar and vocabulary strictly at N3 level
-- Write 12-15 Japanese paragraphs separated by blank lines (much longer than a short passage)
-- Each paragraph should be 6-8 sentences
-- Make the passage engaging and story-like, with clear narrative flow
+- Write 6-8 Japanese paragraphs separated by blank lines
+- Each paragraph should be 3-5 sentences
 - Vary sentence structure and avoid repetitive patterns
-- Aim for 3000-4000 Japanese characters total
+- Aim for 1500-2000 Japanese characters total (long enough to use all 50 words naturally)
+
 
 OUTPUT FORMAT (follow EXACTLY):
-1. First write the ENTIRE Japanese passage (all 12-15 paragraphs). Do NOT mix any English into it.
+1. First write the ENTIRE Japanese passage (all 6-8 paragraphs). Do NOT mix any English into it.
 2. Then write a single line containing only: ===ENGLISH===
 3. Then write the FULL English translation (all paragraphs), AFTER the marker only.
 
 Do NOT interleave Japanese and English. Do NOT repeat the ===ENGLISH=== marker more than once. The Japanese must all come first, the English must all come last.`;
+
 
   // (No client-side Gemini path — Google's API does not support CORS for
   // direct browser calls. Gemini is reached via the /api/groq Netlify
