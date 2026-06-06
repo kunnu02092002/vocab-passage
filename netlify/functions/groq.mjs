@@ -18,6 +18,9 @@ async function callGroq(messages, model, temperature, max_tokens) {
       messages,
       temperature,
       max_tokens,
+      // JSON mode forces the model to return valid JSON, eliminating
+      // chain-of-thought leaks like "Let's draft paragraph by paragraph..."
+      response_format: { type: "json_object" },
     }),
   });
 
@@ -28,6 +31,7 @@ async function callGroq(messages, model, temperature, max_tokens) {
 
   return await response.json();
 }
+
 
 async function callGemini(messages, temperature, max_tokens) {
   // Convert messages to Gemini format

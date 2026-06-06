@@ -305,26 +305,27 @@ async function callGroq() {
     `  ${i+1}. ${w.kanji || '(no kanji)'} (${w.hiragana}) — ${w.english}`
   ).join('\n');
 
-  const prompt = `You are a Japanese language teacher. Output ONLY the final N3-level reading passage below — NO planning, NO thinking, NO notes, NO chain-of-thought, NO outlines. Just the finished passage.
+  const prompt = `You are a Japanese language teacher creating a short N3-level Japanese reading passage that uses all 50 of the given vocabulary words, plus its English translation.
 
 Vocabulary to use (all 50 must appear in the Japanese portion):
 ${wordList}
 
 Rules:
-- Use EVERY word at least once (aim for 100% usage)
-- DO NOT repeat the same vocabulary word multiple times in close proximity
+- Use EVERY word at least once in the Japanese portion (aim for 100% usage)
 - Weave the words into a coherent short story
 - Add furigana in the format 愛(あい) ONLY for words that have kanji — do NOT add furigana for words already in hiragana/katakana
 - Keep grammar and vocabulary at N3 level
 - 6-8 Japanese paragraphs, 3-5 sentences each, blank line between paragraphs
 - Aim for 1500-2000 Japanese characters total
 
-OUTPUT FORMAT (follow EXACTLY — your response should start with Japanese, no preamble):
-1. The ENTIRE Japanese passage (6-8 paragraphs). Do NOT include English in this section.
-2. A single line containing only: ===ENGLISH===
-3. The FULL English translation (all paragraphs) after the marker.
+OUTPUT FORMAT: You must return a JSON object with exactly two fields:
+{
+  "japanese": "<the full Japanese passage with paragraphs separated by \\n\\n, furigana annotations in 愛(あい) format>",
+  "english": "<the full English translation, one paragraph per Japanese paragraph, separated by \\n\\n>"
+}
 
-Do NOT output any thinking, planning, or "Let's draft..." text. Start directly with the Japanese passage. Do NOT interleave Japanese and English.`;
+No other text. No preamble. No explanation. No chain-of-thought. ONLY the JSON object.`;
+
 
 
 
@@ -356,12 +357,25 @@ Do NOT output any thinking, planning, or "Let's draft..." text. Start directly w
     const content = data.choices?.[0]?.message?.content;
     if (!content) throw new Error('No content in response');
 
-    let { japanese, english } = splitJapaneseEnglish(content);
+    // JSON mode: content is a JSON string. Parse it and extract the two fields.
+    // Fall back to the divider-based parser for non-JSON responses (e.g. Gemini).
+    let japanese, english;
+    try {
+      const parsed = JSON.parse(content);
+      japanese = parsed.japanese || '';
+      english = parsed.english || '';
+    } catch (e) {
+      // Not JSON — fall back to the divider-based parser.
+      const split = splitJapaneseEnglish(content);
+      japanese = split.japanese;
+      english = split.english;
+    }
 
     // Defensive cleanup: if the model leaked any chain-of-thought / planning
     // text before the actual Japanese passage, strip it. Drop any leading
     // non-Japanese lines (e.g., "Let's draft paragraph by paragraph...").
     japanese = stripLeadingNonJapanese(japanese);
+
 
 
     currentResult = { japanese, english };
