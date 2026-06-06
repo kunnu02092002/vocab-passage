@@ -122,7 +122,16 @@ export const handler = async (event) => {
     } catch (groqError) {
       // Check if it's a rate limit error
       const errorMsg = groqError.message;
-      if (errorMsg.includes('rate_limit_exceeded') || errorMsg.includes('Rate limit')) {
+      const isRateLimit = errorMsg.includes('rate_limit_exceeded') || 
+                          errorMsg.includes('Rate limit') || 
+                          errorMsg.includes('rate limit') ||
+                          errorMsg.includes('tokens per day') ||
+                          errorMsg.includes('TPD');
+      
+      console.log('Groq error:', errorMsg);
+      console.log('Is rate limit:', isRateLimit);
+      
+      if (isRateLimit) {
         console.log('Groq rate limit hit, falling back to Gemini...');
         try {
           const data = await callGemini(messages, temperature, max_tokens);
@@ -135,6 +144,7 @@ export const handler = async (event) => {
             body: JSON.stringify(data),
           };
         } catch (geminiError) {
+          console.log('Gemini error:', geminiError.message);
           return {
             statusCode: 500,
             headers,
