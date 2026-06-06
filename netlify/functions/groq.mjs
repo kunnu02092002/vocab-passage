@@ -106,54 +106,97 @@ export const handler = async (event) => {
   }
 
   try {
-    const { messages, model = "llama-3.3-70b-versatile", temperature = 0.7, max_tokens = 4000 } = JSON.parse(event.body);
+    const { messages, model = "llama-3.3-70b-versatile", temperature = 0.7, max_tokens = 4000, provider = "auto" } = JSON.parse(event.body);
 
-    // Try Groq first
-    try {
-      const data = await callGroq(messages, model, temperature, max_tokens);
-      return {
-        statusCode: 200,
-        headers: {
-          ...headers,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      };
-    } catch (groqError) {
-      // Check if it's a rate limit error
-      const errorMsg = groqError.message;
-      const isRateLimit = errorMsg.includes('rate_limit_exceeded') || 
-                          errorMsg.includes('Rate limit') || 
-                          errorMsg.includes('rate limit') ||
-                          errorMsg.includes('tokens per day') ||
-                          errorMsg.includes('TPD');
-      
-      console.log('Groq error:', errorMsg);
-      console.log('Is rate limit:', isRateLimit);
-      
-      if (isRateLimit) {
-        console.log('Groq rate limit hit, falling back to Gemini...');
-        try {
-          const data = await callGemini(messages, temperature, max_tokens);
-          return {
-            statusCode: 200,
-            headers: {
-              ...headers,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(data),
-          };
-        } catch (geminiError) {
-          console.log('Gemini error:', geminiError.message);
-          return {
-            statusCode: 500,
-            headers,
-            body: JSON.stringify({ error: `Both APIs failed. Groq: ${errorMsg}. Gemini: ${geminiError.message}` }),
-          };
-        }
+    // Handle provider selection
+    if (provider === "gemini") {
+      // Use Gemini directly
+      try {
+        const data = await callGemini(messages, temperature, max_tokens);
+        return {
+          statusCode: 200,
+          headers: {
+            ...headers,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        };
+      } catch (geminiError) {
+        console.log('Gemini error:', geminiError.message);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: `Gemini API failed: ${geminiError.message}` }),
+        };
       }
-      // Re-throw non-rate-limit errors
-      throw groqError;
+    } else if (provider === "groq") {
+      // Use Groq directly
+      try {
+        const data = await callGroq(messages, model, temperature, max_tokens);
+        return {
+          statusCode: 200,
+          headers: {
+            ...headers,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        };
+      } catch (groqError) {
+        console.log('Groq error:', groqError.message);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: `Groq API failed: ${groqError.message}` }),
+        };
+      }
+    } else {
+      // Auto mode: Try Groq first, fallback to Gemini on rate limit
+      try {
+        const data = await callGroq(messages, model, temperature, max_tokens);
+        return {
+          statusCode: 200,
+          headers: {
+            ...headers,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        };
+      } catch (groqError) {
+        // Check if it's a rate limit error
+        const errorMsg = groqError.message;
+        const isRateLimit = errorMsg.includes('rate_limit_exceeded') || 
+                            errorMsg.includes('Rate limit') || 
+                            errorMsg.includes('rate limit') ||
+                            errorMsg.includes('tokens per day') ||
+                            errorMsg.includes('TPD');
+        
+        console.log('Groq error:', errorMsg);
+        console.log('Is rate limit:', isRateLimit);
+        
+        if (isRateLimit) {
+          console.log('Groq rate limit hit, falling back to Gemini...');
+          try {
+            const data = await callGemini(messages, temperature, max_tokens);
+            return {
+              statusCode: 200,
+              headers: {
+                ...headers,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(data),
+            };
+          } catch (geminiError) {
+            console.log('Gemini error:', geminiError.message);
+            return {
+              statusCode: 500,
+              headers,
+              body: JSON.stringify({ error: `Both APIs failed. Groq: ${errorMsg}. Gemini: ${geminiError.message}` }),
+            };
+          }
+        }
+        // Re-throw non-rate-limit errors
+        throw groqError;
+      }
     }
   } catch (error) {
     return {
