@@ -311,12 +311,19 @@ Rules:
 - Naturally weave the words into a coherent, rich passage (like a short story or essay)
 - Add furigana in the format 愛(あい) ONLY for words that have kanji — do NOT add furigana for words already written in hiragana/katakana (e.g., write ますます not ますます(ますます), write ボール not ボール(ぼーる))
 - Keep grammar and vocabulary strictly at N3 level
-- Write 12-15 Japanese paragraphs separated by newlines (much longer than a short passage)
+- Write 12-15 Japanese paragraphs separated by blank lines (much longer than a short passage)
 - Each paragraph should be 6-8 sentences
 - Make the passage engaging and story-like, with clear narrative flow
 - Vary sentence structure and avoid repetitive patterns
-- After the Japanese text, add a line with just "---", then a full English translation (one paragraph per Japanese paragraph)
-- Aim for 3000-4000 Japanese characters total`;
+- Aim for 3000-4000 Japanese characters total
+
+OUTPUT FORMAT (follow EXACTLY):
+1. First write the ENTIRE Japanese passage (all 12-15 paragraphs). Do NOT mix any English into it.
+2. Then write a single line containing only: ===ENGLISH===
+3. Then write the FULL English translation (all paragraphs), AFTER the marker only.
+
+Do NOT interleave Japanese and English. Do NOT repeat the ===ENGLISH=== marker more than once. The Japanese must all come first, the English must all come last.`;
+
 
   try {
     const response = await fetch('/api/groq', {
@@ -327,7 +334,7 @@ Rules:
           { role: 'system', content: 'You are a Japanese language teacher creating N3-level reading passages.' },
           { role: 'user', content: prompt }
         ],
-        max_tokens: 5000,
+        max_tokens: 8000,
         temperature: 0.7,
         provider: currentProvider,
       })
@@ -339,11 +346,10 @@ Rules:
     const content = data.choices?.[0]?.message?.content;
     if (!content) throw new Error('No content in response');
 
-    const parts = content.split('---');
-    const japanese = (parts[0] || '').trim();
-    const english = (parts[1] || '').trim();
+    const { japanese, english } = splitJapaneseEnglish(content);
 
     currentResult = { japanese, english };
+
 
     // Find which words were used (check both kanji and hiragana)
     currentUsedIndices = [];
@@ -418,7 +424,106 @@ function renderPassage(japanese, english) {
   document.getElementById('translation').innerHTML = translatedHtml;
 }
 
+function splitJapaneseEnglish(content) {
+  // Hybrid parser combining the kanji-reading-practice.html approach (chunk-level
+  // language majority) with a line-level classifier for mixed chunks. Handles:
+  //   * clean "---" / "===ENGLISH===" output  -> whole-chunk majority
+  //   * per-paragraph interleaved output      -> line-by-line sorting
+  //   * mixed chunks (the user's reported bug) -> line-level fallback
+
+  const normalized = content.replace(/\r\n/g, '\n').trim();
+
+  // Split on divider lines: "---" (legacy) or "===ENGLISH===" (new strict).
+  const parts = normalized
+    .split(/\n?[ \t]*(?:---+|={2,}\s*english\s*={2,})[ \t]*\n?/i)
+    .map(p => p.trim())
+    .filter(Boolean);
+
+  // Whole-chunk language majority (the kanji project's approach).
+  function isMostlyJapanese(text) {
+    const compact = String(text || '').replace(/\s+/g, '');
+    if (!compact) return false;
+    const jp = (compact.match(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF々ヶー]/g) || []).length;
+    const latin = (compact.match(/[A-Za-z]/g) || []).length;
+    return jp >= latin;
+  }
+
+  // Classify every line within a chunk as JP or EN (handles mixed chunks).
+  // Empty lines inherit the language of the nearest non-empty line.
+  function splitChunkByLanguage(chunk) {
+    const lines = chunk.split('\n');
+    const labels = lines.map(l => {
+      const t = l.trim();
+      if (!t) return null; // blank, decide later
+      if (/[\u3040-\u30FF\u4E00-\u9FAF]/.test(t)) return 'jp';
+      return 'en';
+    });
+    // Resolve blanks: inherit from nearest non-blank (forward then backward).
+    for (let i = 0; i < labels.length; i++) {
+      if (labels[i] !== null) continue;
+      let near = null;
+      for (let j = i + 1; j < labels.length; j++) { if (labels[j] !== null) { near = labels[j]; break; } }
+      if (!near) for (let j = i - 1; j >= 0; j--) { if (labels[j] !== null) { near = labels[j]; break; } }
+      labels[i] = near || 'jp';
+    }
+    const jpLines = [], enLines = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (labels[i] === 'jp') jpLines.push(lines[i]);
+      else enLines.push(lines[i]);
+    }
+    return { jp: jpLines.join('\n').trim(), en: enLines.join('\n').trim() };
+  }
+
+  if (parts.length <= 1) {
+    // Single chunk: if it has both JP and EN, split it line-by-line.
+    if (parts.length === 1 && isMostlyJapanese(parts[0]) === false && /[\u3040-\u30FF\u4E00-\u9FAF]/.test(parts[0])) {
+      const c = splitChunkByLanguage(parts[0]);
+      if (c.jp && c.en) return { japanese: c.jp, english: c.en };
+    }
+    return { japanese: normalized, english: '' };
+  }
+
+  // Step 1: try the kanji-style whole-chunk majority first.
+  const jp1 = [], en1 = [];
+  parts.forEach(p => {
+    if (isMostlyJapanese(p)) jp1.push(p);
+    else en1.push(p);
+  });
+
+  // If every chunk classified as Japanese, treat the whole thing as Japanese.
+  if (jp1.length === parts.length) {
+    return { japanese: parts.join('\n\n'), english: '' };
+  }
+
+  // If classification produced a clean split (no mixed chunks), use it.
+  // A "mixed chunk" is one that contains BOTH JP and EN text.
+  const hasMixedChunk = parts.some(p => {
+    const m = (p.match(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF々ヶー]/g) || []).length;
+    const l = (p.match(/[A-Za-z]/g) || []).length;
+    return m > 0 && l > 0;
+  });
+
+  if (!hasMixedChunk) {
+    return { japanese: jp1.join('\n\n'), english: en1.join('\n\n').trim() };
+  }
+
+  // Step 2: there are mixed chunks. Re-classify line-by-line within each part,
+  // then concatenate all JP lines and all EN lines.
+  const allJP = [];
+  const allEN = [];
+  parts.forEach(p => {
+    const c = splitChunkByLanguage(p);
+    if (c.jp) allJP.push(c.jp);
+    if (c.en) allEN.push(c.en);
+  });
+  return { japanese: allJP.join('\n\n'), english: allEN.join('\n\n').trim() };
+}
+
+
+
+
 function applyFurigana(text) {
+
   // Wrap kanji(reading) in <ruby> tags
   return text.replace(/([一-龯々〆〤]+)\(([\u3040-\u309F\u30A0-\u30FFー]+)\)/g, '<ruby>$1<rt>$2</rt></ruby>');
 }
