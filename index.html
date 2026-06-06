@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vocab Passage Generator</title>
 <style>
-  /* Light, easy-to-read theme */
   :root {
     --bg: #f8f6f1;
     --surface: #ffffff;
@@ -14,9 +13,9 @@
     --gold: #b45309;
     --text: #1f2937;
     --text2: #4b5563;
-    --green: #16a34a;
     --gray: #d1d5db;
     --highlight: #fef3c7;
+    --mark: #fde68a;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -29,16 +28,13 @@
   }
   .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
 
-  /* Header */
   header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 0; }
   h1 { font-size: 1.8rem; color: var(--accent); }
   .badge { background: var(--surface); padding: 6px 14px; border-radius: 12px; font-size: 0.9rem; color: var(--text2); border: 1px solid var(--gray); }
 
-  /* Layout */
   .layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
   @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } }
 
-  /* Control Panel */
   .panel { background: var(--surface); border-radius: 12px; padding: 20px; height: fit-content; border: 1px solid var(--gray); }
   .panel h2 { font-size: 1.1rem; margin-bottom: 14px; color: var(--accent); }
   .panel-group { margin-bottom: 18px; }
@@ -53,7 +49,6 @@
   .btn-group { display: flex; gap: 8px; }
   .btn-group .btn { flex: 1; }
 
-  /* Toggle */
   .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
   .toggle-row span { font-size: 1rem; color: var(--text2); }
   .toggle { position: relative; width: 48px; height: 26px; cursor: pointer; }
@@ -63,14 +58,10 @@
   .toggle input:checked + .slider { background: var(--accent); }
   .toggle input:checked + .slider::before { transform: translateX(22px); }
 
-  /* Status */
   .status { font-size: 0.95rem; color: var(--text2); padding: 6px 0; }
   .status strong { color: var(--text); }
 
-  /* Vocab Strip */
   .vocab-strip { background: var(--surface); border-radius: 12px; padding: 14px; margin-bottom: 20px; max-height: 140px; overflow-y: auto; border: 1px solid var(--gray); }
-  .vocab-strip::-webkit-scrollbar { width: 6px; }
-  .vocab-strip::-webkit-scrollbar-thumb { background: var(--gray); border-radius: 3px; }
   .strip-label { font-size: 0.95rem; color: var(--text2); margin-bottom: 10px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip { display: inline-flex; flex-direction: column; align-items: center; padding: 6px 12px; border-radius: 6px; font-size: 0.95rem; cursor: pointer; transition: all .2s; position: relative; border: 1px solid transparent; background: var(--card); color: var(--text2); }
@@ -81,24 +72,43 @@
   .chip .chip-tooltip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 6px 10px; border-radius: 4px; font-size: 0.8rem; white-space: nowrap; z-index: 10; }
   .chip:hover .chip-tooltip { display: block; }
 
-  /* Reader Area */
+  /* Reader (this is the element that goes fullscreen) */
   .reader { background: var(--surface); border-radius: 12px; padding: 32px; min-height: 300px; border: 1px solid var(--gray); }
   .reader-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 8px; flex-wrap: wrap; }
   .reader-controls { display: flex; gap: 8px; flex-wrap: wrap; }
 
-  /* Passage Text — BIGGER and easier to read */
   .passage { font-size: 1.75rem; line-height: 2.4; margin-bottom: 32px; color: var(--text); }
   .passage ruby { ruby-align: center; }
   .passage rt { font-size: 0.95rem; color: var(--accent); font-weight: 500; }
   .passage .jp-text { cursor: pointer; padding: 6px 8px; border-radius: 4px; transition: background .2s; display: block; margin-bottom: 12px; }
   .passage .jp-text:hover { background: var(--highlight); }
   .passage .jp-text.speaking { background: #fde68a; }
-  .passage .jp-text.highlight { background: var(--highlight); }
   .passage-divider { border: none; border-top: 1px solid var(--gray); margin: 36px 0; }
   .translation { font-size: 1.25rem; line-height: 1.9; color: var(--text2); }
   .translation p { margin-bottom: 14px; }
 
-  /* Library */
+  /* Highlight for vocab words found in passage */
+  .passage mark.vocab-hit {
+    background: var(--mark);
+    color: var(--text);
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-weight: 600;
+    box-shadow: 0 0 0 1px var(--gold);
+  }
+
+  /* Fullscreen — only applies to .reader */
+  .reader:fullscreen, .reader:-webkit-full-screen {
+    background: var(--surface);
+    padding: 60px;
+    overflow-y: auto;
+  }
+  .reader:fullscreen .passage, .reader:-webkit-full-screen .passage { font-size: 2.2rem; }
+  .reader:fullscreen .translation, .reader:-webkit-full-screen .translation { font-size: 1.6rem; }
+
+  .fullscreen-btn { position: fixed; bottom: 20px; right: 20px; background: var(--accent); color: white; border: none; border-radius: 50%; width: 52px; height: 52px; font-size: 1.3rem; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.2); display: none; align-items: center; justify-content: center; z-index: 100; }
+  .fullscreen-btn.visible { display: flex; }
+
   .library { margin-top: 24px; }
   .library h2 { font-size: 1.1rem; color: var(--accent); margin-bottom: 14px; }
   .library-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
@@ -110,16 +120,10 @@
   .library-card .lc-delete { float: right; color: var(--accent); cursor: pointer; font-size: 1.2rem; line-height: 1; }
   .library-empty { color: var(--text2); font-size: 0.95rem; }
 
-  /* Loading */
   .loading { display: flex; align-items: center; justify-content: center; padding: 50px; gap: 14px; color: var(--text2); }
   .spinner { width: 28px; height: 28px; border: 3px solid var(--gray); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Fullscreen */
-  .fullscreen-btn { position: fixed; bottom: 20px; right: 20px; background: var(--accent); color: white; border: none; border-radius: 50%; width: 52px; height: 52px; font-size: 1.3rem; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.2); display: none; align-items: center; justify-content: center; z-index: 100; }
-  .fullscreen-btn.visible { display: flex; }
-
-  /* Notifications */
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--accent); color: var(--text); padding: 12px 22px; border-radius: 8px; font-size: 0.95rem; z-index: 200; display: none; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
   .toast.show { display: block; animation: fadeIn .3s; }
   @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
@@ -133,7 +137,6 @@
   </header>
 
   <div class="layout">
-    <!-- Left Panel -->
     <div class="panel">
       <h2>⚙ Controls</h2>
 
@@ -141,8 +144,8 @@
         <label>Actions</label>
         <button class="btn btn-primary" id="generateBtn" onclick="generate()">🎲 Generate Passage</button>
         <div class="btn-group" style="margin-top:10px">
-          <button class="btn btn-secondary btn-small" id="regenerateBtn" onclick="regenerate()">🔄 Regenerate</button>
-          <button class="btn btn-secondary btn-small" id="newWordsBtn" onclick="newWords()">✨ New Words</button>
+          <button class="btn btn-secondary btn-small" onclick="regenerate()">🔄 Regenerate</button>
+          <button class="btn btn-secondary btn-small" onclick="newWords()">✨ New Words</button>
         </div>
       </div>
 
@@ -159,7 +162,7 @@
       <div class="panel-group">
         <label>Status</label>
         <div class="status" id="status">Ready — click Generate</div>
-        <div class="status" id="wordsUsed">📝 Words used: <strong id="usedCount">0</strong>/50</div>
+        <div class="status">📝 Words used: <strong id="usedCount">0</strong>/50</div>
       </div>
 
       <div class="panel-group">
@@ -168,18 +171,15 @@
       </div>
     </div>
 
-    <!-- Right: Reader Area -->
     <div>
-      <!-- Vocab Strip -->
-      <div class="vocab-strip" id="vocabStrip">
+      <div class="vocab-strip">
         <div class="strip-label">📌 Selected Vocabulary (50 words)</div>
         <div class="chips" id="chips"><span style="color:var(--text2);font-size:.95rem">Generate to populate</span></div>
       </div>
 
-      <!-- Reader -->
       <div class="reader" id="reader">
         <div class="reader-header">
-          <span style="font-size:1rem;color:var(--text2)" id="readerTitle">Reading Passage</span>
+          <span style="font-size:1rem;color:var(--text2)">Reading Passage</span>
           <div class="reader-controls">
             <button class="btn btn-secondary btn-small" id="playBtn" onclick="togglePlay()">▶ Play</button>
             <button class="btn btn-secondary btn-small" onclick="toggleFullscreen()">⛶ Fullscreen</button>
@@ -194,7 +194,6 @@
         </div>
       </div>
 
-      <!-- Library -->
       <div class="library">
         <h2>📚 Saved Passages</h2>
         <div class="library-grid" id="libraryGrid">
@@ -205,21 +204,18 @@
   </div>
 </div>
 
-<button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()">⛶</button>
 <div class="toast" id="toast"></div>
 
 <script>
-// ============= STATE =============
 let vocab = [];
 let selectedWords = [];
 let currentResult = null;
+let currentUsedIndices = [];
 let isPlaying = false;
 let currentParagraphIdx = -1;
 let speechSynth = window.speechSynthesis;
 let speechQueue = [];
-let isPaused = false;
 
-// ============= INIT =============
 async function init() {
   try {
     const res = await fetch('n3_vocab.json');
@@ -234,7 +230,6 @@ async function init() {
 }
 init();
 
-// ============= VOCAB SELECTION =============
 function selectRandomWords(count = 50) {
   const shuffled = [...vocab];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -266,7 +261,6 @@ function updateUsedCount(usedIndices) {
   document.getElementById('usedCount').textContent = used;
 }
 
-// ============= PASSAGE GENERATION =============
 async function generate() {
   if (vocab.length === 0) { showToast('⚠ Vocab data not loaded yet'); return; }
   selectRandomWords(50);
@@ -323,32 +317,37 @@ Rules:
       })
     });
 
-    if (!response.ok) { const err = await response.text(); throw new Error(`API error: ${err}`); }
+    if (!response.ok) { const err = await response.text(); throw new Error('API error: ' + err); }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
     if (!content) throw new Error('No content in response');
 
     const parts = content.split('---');
-    const japanese = parts[0]?.trim() || '';
-    const english = parts[1]?.trim() || '';
+    const japanese = (parts[0] || '').trim();
+    const english = (parts[1] || '').trim();
 
     currentResult = { japanese, english };
 
-    const usedIndices = [];
+    // Find which words were used (check both kanji and hiragana)
+    currentUsedIndices = [];
     selectedWords.forEach((w, i) => {
-      const searchText = w.kanji || w.hiragana;
-      if (japanese.includes(searchText)) usedIndices.push(i);
+      const searchKanji = w.kanji || '';
+      const searchKana = w.hiragana || '';
+      if ((searchKanji && japanese.includes(searchKanji)) ||
+          (searchKana && japanese.includes(searchKana))) {
+        currentUsedIndices.push(i);
+      }
     });
 
-    renderChips(usedIndices);
-    updateUsedCount(usedIndices);
-    document.getElementById('status').textContent = `✅ Generated — ${usedIndices.length}/50 words found in passage`;
+    renderChips(currentUsedIndices);
+    updateUsedCount(currentUsedIndices);
+    document.getElementById('status').textContent = '✅ Generated — ' + currentUsedIndices.length + '/50 words found';
 
     renderPassage(japanese, english);
   } catch (e) {
     document.getElementById('status').textContent = '⚠ Generation failed';
-    document.getElementById('passage').innerHTML = `<p style="color:var(--accent)">Error: ${e.message}</p>`;
+    document.getElementById('passage').innerHTML = '<p style="color:var(--accent)">Error: ' + e.message + '</p>';
     console.error(e);
   } finally {
     genBtn.disabled = false;
@@ -363,18 +362,55 @@ function renderPassage(japanese, english) {
   jpParagraphs.forEach((para, idx) => {
     let text = para.trim();
     if (!text) return;
-    if (furiganaOn) text = applyFurigana(text);
-    html += `<div class="jp-text" data-paragraph="${idx}" onclick="playParagraph(${idx})">${text}</div>`;
+    // First apply furigana (or strip it)
+    if (furiganaOn) {
+      text = applyFurigana(text);
+    } else {
+      // When OFF, remove the (reading) part entirely — keep just the kanji
+      text = stripFurigana(text);
+    }
+    // Then highlight any vocab words found in the passage
+    text = highlightVocab(text, currentUsedIndices);
+    html += '<div class="jp-text" data-paragraph="' + idx + '" onclick="playParagraph(' + idx + ')">' + text + '</div>';
   });
 
   document.getElementById('passage').innerHTML = html;
 
   const engParagraphs = english.split(/\n+/).filter(p => p.trim());
-  document.getElementById('translation').innerHTML = engParagraphs.map(p => `<p>${p}</p>`).join('');
+  document.getElementById('translation').innerHTML = engParagraphs.map(p => '<p>' + p + '</p>').join('');
 }
 
 function applyFurigana(text) {
+  // Wrap kanji(reading) in <ruby> tags
   return text.replace(/([一-龯々〆〤]+)\(([\u3040-\u309F\u30A0-\u30FFー]+)\)/g, '<ruby>$1<rt>$2</rt></ruby>');
+}
+
+function stripFurigana(text) {
+  // Remove the (reading) part entirely so the text reads as plain kanji
+  return text.replace(/([一-龯々〆〤]+)\(([\u3040-\u309F\u30A0-\u30FFー]+)\)/g, '$1');
+}
+
+function highlightVocab(text, usedIndices) {
+  // Highlight vocab words found in the passage
+  let result = text;
+  usedIndices.forEach(idx => {
+    const word = selectedWords[idx];
+    if (!word) return;
+    const searchKanji = word.kanji || '';
+    const searchKana = word.hiragana || '';
+
+    // Highlight kanji form (e.g., 挨拶)
+    if (searchKanji && searchKanji.length >= 1) {
+      const escK = searchKanji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      result = result.replace(new RegExp(escK, 'g'), '<mark class="vocab-hit">' + searchKanji + '</mark>');
+    }
+    // Highlight hiragana form (e.g., あいさつ) — only if no kanji form exists, to avoid double-highlighting
+    if (searchKana && searchKana.length >= 2 && !searchKanji) {
+      const escH = searchKana.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      result = result.replace(new RegExp(escH, 'g'), '<mark class="vocab-hit">' + searchKana + '</mark>');
+    }
+  });
+  return result;
 }
 
 function toggleFurigana() {
@@ -433,7 +469,7 @@ function copyPassage() {
 function saveToLibrary() {
   if (!currentResult) { showToast('⚠ No passage to save'); return; }
   const library = JSON.parse(localStorage.getItem('vocab_passage_library') || '[]');
-  library.unshift({ id: Date.now(), date: new Date().toISOString(), japanese: currentResult.japanese, english: currentResult.english, count: parseInt(document.getElementById('usedCount').textContent) });
+  library.unshift({ id: Date.now(), date: new Date().toISOString(), japanese: currentResult.japanese, english: currentResult.english, count: currentUsedIndices.length });
   localStorage.setItem('vocab_passage_library', JSON.stringify(library));
   showToast('💾 Saved to library!');
   loadLibrary();
@@ -446,7 +482,7 @@ function loadLibrary() {
   grid.innerHTML = library.map(item => {
     const date = new Date(item.date).toLocaleDateString();
     const preview = item.japanese.replace(/<[^>]*>/g, '').substring(0, 80);
-    return `<div class="library-card" onclick="loadFromLibrary(${item.id})"><span class="lc-delete" onclick="event.stopPropagation();deleteFromLibrary(${item.id})">×</span><div class="lc-date">${date}</div><div class="lc-preview">${preview}…</div><div class="lc-count">${item.count || '?'}/50 words</div></div>`;
+    return '<div class="library-card" onclick="loadFromLibrary(' + item.id + ')"><span class="lc-delete" onclick="event.stopPropagation();deleteFromLibrary(' + item.id + ')">×</span><div class="lc-date">' + date + '</div><div class="lc-preview">' + preview + '…</div><div class="lc-count">' + (item.count || '?') + '/50 words</div></div>';
   }).join('');
 }
 
@@ -455,8 +491,9 @@ function loadFromLibrary(id) {
   const item = library.find(i => i.id === id);
   if (!item) return;
   currentResult = { japanese: item.japanese, english: item.english };
+  currentUsedIndices = [];
   renderPassage(item.japanese, item.english);
-  document.getElementById('status').textContent = `📚 Loaded passage from ${new Date(item.date).toLocaleDateString()}`;
+  document.getElementById('status').textContent = '📚 Loaded passage from ' + new Date(item.date).toLocaleDateString();
   document.getElementById('usedCount').textContent = item.count || '?';
   showToast('📚 Passage loaded');
 }
@@ -470,8 +507,15 @@ function deleteFromLibrary(id) {
 }
 
 function toggleFullscreen() {
-  if (document.fullscreenElement) { document.exitFullscreen(); document.getElementById('fullscreenBtn').classList.remove('visible'); }
-  else { document.documentElement.requestFullscreen(); document.getElementById('fullscreenBtn').classList.add('visible'); }
+  // Fullscreen only the .reader element, not the whole page
+  const reader = document.getElementById('reader');
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else if (reader.requestFullscreen) {
+    reader.requestFullscreen();
+  } else if (reader.webkitRequestFullscreen) {
+    reader.webkitRequestFullscreen();
+  }
 }
 
 function showToast(msg) {
