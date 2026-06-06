@@ -88,7 +88,8 @@
   .translation p { margin-bottom: 14px; }
 
   /* Highlight for vocab words found in passage */
-  .passage mark.vocab-hit {
+  .passage mark.vocab-hit,
+  .translation mark.vocab-hit {
     background: var(--mark);
     color: var(--text);
     padding: 2px 4px;
@@ -377,7 +378,22 @@ function renderPassage(japanese, english) {
   document.getElementById('passage').innerHTML = html;
 
   const engParagraphs = english.split(/\n+/).filter(p => p.trim());
-  document.getElementById('translation').innerHTML = engParagraphs.map(p => '<p>' + p + '</p>').join('');
+  // Also highlight vocab words in translation paragraphs that contain Japanese text
+  const translatedHtml = engParagraphs.map(p => {
+    // Check if paragraph contains Japanese characters
+    if (/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(p)) {
+      let text = p;
+      if (furiganaOn) {
+        text = applyFurigana(text);
+      } else {
+        text = stripFurigana(text);
+      }
+      text = highlightVocab(text, currentUsedIndices);
+      return '<p>' + text + '</p>';
+    }
+    return '<p>' + p + '</p>';
+  }).join('');
+  document.getElementById('translation').innerHTML = translatedHtml;
 }
 
 function applyFurigana(text) {
