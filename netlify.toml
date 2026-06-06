@@ -1,6 +1,13 @@
 [build]
   functions = "netlify/functions"
 
+[functions]
+  # Allow the Gemini function up to 26s (max on Netlify's free/pro plan).
+  # Long passages (3000-4000 Japanese chars) need this.
+  [functions."groq"]
+    timeout = 26
+
+
 [[redirects]]
   from = "/"
   to = "/index.html"
