@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vocab Passage Generator</title>
+<style>
+  :root { --bg: #0f0f1a; --surface: #1a1a2e; --card: #16213e; --accent: #e94560; --gold: #ffd700; --text: #eaeaea; --text2: #a0a0b0; --green: #4caf50; --gray: #333; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
+  
+  /* Header */
+  header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 0; }
+  h1 { font-size: 1.5rem; background: linear-gradient(135deg, var(--accent), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .badge { background: var(--surface); padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; color: var(--text2); }
+  
+  /* Layout */
+  .layout { display: grid; grid-template-columns: 280px 1fr; gap: 16px; }
+  @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } }
+  
+  /* Control Panel */
+  .panel { background: var(--surface); border-radius: 12px; padding: 16px; height: fit-content; }
+  .panel h2 { font-size: 1rem; margin-bottom: 12px; color: var(--gold); }
+  .panel-group { margin-bottom: 16px; }
+  .panel-group label { display: block; font-size: 0.85rem; color: var(--text2); margin-bottom: 4px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all .2s; width: 100%; justify-content: center; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { filter: brightness(1.15); }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; filter: none; }
+  .btn-secondary { background: var(--card); color: var(--text); border: 1px solid #333; }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .btn-small { padding: 6px 12px; font-size: 0.8rem; width: auto; }
+  
+  .btn-group { display: flex; gap: 8px; }
+  .btn-group .btn { flex: 1; }
+  
+  /* Toggle */
+  .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+  .toggle-row span { font-size: 0.85rem; color: var(--text2); }
+  .toggle { position: relative; width: 44px; height: 24px; cursor: pointer; }
+  .toggle input { display: none; }
+  .toggle .slider { position: absolute; inset: 0; background: var(--gray); border-radius: 12px; transition: .3s; }
+  .toggle .slider::before { content: ''; position: absolute; width: 18px; height: 18px; border-radius: 50%; background: white; top: 3px; left: 3px; transition: .3s; }
+  .toggle input:checked + .slider { background: var(--accent); }
+  .toggle input:checked + .slider::before { transform: translateX(20px); }
+  
+  /* Status */
+  .status { font-size: 0.85rem; color: var(--text2); padding: 8px 0; }
+  .status strong { color: var(--text); }
+  
+  /* Vocab Strip */
+  .vocab-strip { background: var(--surface); border-radius: 12px; padding: 12px; margin-bottom: 16px; max-height: 120px; overflow-y: auto; }
+  .vocab-strip::-webkit-scrollbar { width: 4px; }
+  .vocab-strip::-webkit-scrollbar-thumb { background: var(--gray); border-radius: 2px; }
+  .strip-label { font-size: 0.8rem; color: var(--text2); margin-bottom: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { display: inline-flex; flex-direction: column; align-items: center; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; transition: all .2s; position: relative; border: 1px solid transparent; background: var(--card); color: var(--text2); }
+  .chip.found { background: #2a2a1a; border-color: var(--gold); color: var(--gold); }
+  .chip.not-found { background: var(--card); border-color: #333; color: var(--text2); opacity: .6; }
+  .chip .chip-kanji { font-size: 0.95rem; font-weight: 600; }
+  .chip .chip-kana { font-size: 0.7rem; opacity: .8; }
+  .chip .chip-tooltip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #222; color: var(--text); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; white-space: nowrap; z-index: 10; }
+  .chip:hover .chip-tooltip { display: block; }
+  
+  /* Reader Area */
+  .reader { background: var(--surface); border-radius: 12px; padding: 24px; min-height: 300px; }
+  .reader-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 8px; flex-wrap: wrap; }
+  .reader-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+  
+  /* Passage Text */
+  .passage { font-size: 1.1rem; line-height: 2; margin-bottom: 24px; }
+  .passage ruby { ruby-align: center; }
+  .passage rt { font-size: 0.7rem; color: var(--gold); }
+  .passage .jp-text { cursor: pointer; padding: 2px 4px; border-radius: 4px; transition: background .2s; }
+  .passage .jp-text:hover { background: rgba(233,69,96,.15); }
+  .passage .jp-text.speaking { background: rgba(255,215,0,.2); }
+  .passage .jp-text.highlight { background: rgba(233,69,96,.1); }
+  .passage-divider { border: none; border-top: 1px solid #333; margin: 24px 0; }
+  .translation { font-size: 0.95rem; line-height: 1.7; color: var(--text2); }
+  
+  /* Library */
+  .library { margin-top: 16px; }
+  .library h2 { font-size: 1rem; color: var(--gold); margin-bottom: 12px; }
+  .library-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .library-card { background: var(--surface); border-radius: 8px; padding: 12px; cursor: pointer; transition: all .2s; border: 1px solid transparent; }
+  .library-card:hover { border-color: var(--accent); }
+  .library-card .lc-date { font-size: 0.75rem; color: var(--text2); }
+  .library-card .lc-preview { font-size: 0.85rem; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .library-card .lc-count { font-size: 0.75rem; color: var(--gold); margin-top: 4px; }
+  .library-card .lc-delete { float: right; color: var(--accent); cursor: pointer; font-size: 1.1rem; line-height: 1; }
+  .library-empty { color: var(--text2); font-size: 0.85rem; }
+  
+  /* Loading */
+  .loading { display: flex; align-items: center; justify-content: center; padding: 40px; gap: 12px; color: var(--text2); }
+  .spinner { width: 24px; height: 24px; border: 3px solid var(--gray); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  
+  /* Fullscreen */
+  .fullscreen-btn { position: fixed; bottom: 20px; right: 20px; background: var(--accent); color: white; border: none; border-radius: 50%; width: 48px; height: 48px; font-size: 1.2rem; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.3); display: none; align-items: center; justify-content: center; z-index: 100; }
+  .fullscreen-btn.visible { display: flex; }
+  
+  /* Notifications */
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--gold); color: var(--text); padding: 10px 20px; border-radius: 8px; font-size: 0.85rem; z-index: 200; display: none; }
+  .toast.show { display: block; animation: fadeIn .3s; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>📖 Vocab Passage Generator</h1>
+    <span class="badge" id="vocabCount">Loading vocab...</span>
+  </header>
+  
+  <div class="layout">
+    <!-- Left Panel -->
+    <div class="panel">
+      <h2>⚙ Controls</h2>
+      
+      <div class="panel-group">
+        <label>Actions</label>
+        <button class="btn btn-primary" id="generateBtn" onclick="generate()">🎲 Generate Passage</button>
+        <div class="btn-group" style="margin-top:8px">
+          <button class="btn btn-secondary btn-small" id="regenerateBtn" onclick="regenerate()">🔄 Regenerate</button>
+          <button class="btn btn-secondary btn-small" id="newWordsBtn" onclick="newWords()">✨ New Words</button>
+        </div>
+      </div>
+      
+      <div class="panel-group">
+        <div class="toggle-row">
+          <span>Furigana</span>
+          <label class="toggle">
+            <input type="checkbox" id="furiganaToggle" checked onchange="toggleFurigana()">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+      
+      <div class="panel-group">
+        <label>Status</label>
+        <div class="status" id="status">Ready — click Generate</div>
+        <div class="status" id="wordsUsed">📝 Words used: <strong id="usedCount">0</strong>/50</div>
+      </div>
+      
+      <div class="panel-group">
+        <button class="btn btn-secondary btn-small" onclick="copyPassage()">📋 Copy Passage</button>
+        <button class="btn btn-secondary btn-small" style="margin-top:4px" onclick="saveToLibrary()">💾 Save to Library</button>
+      </div>
+    </div>
+    
+    <!-- Right: Reader Area -->
+    <div>
+      <!-- Vocab Strip -->
+      <div class="vocab-strip" id="vocabStrip">
+        <div class="strip-label">📌 Selected Vocabulary (50 words)</div>
+        <div class="chips" id="chips"><span style="color:var(--text2);font-size:.85rem">Generate to populate</span></div>
+      </div>
+      
+      <!-- Reader -->
+      <div class="reader" id="reader">
+        <div class="reader-header">
+          <span style="font-size:0.9rem;color:var(--text2)" id="readerTitle">Reading Passage</span>
+          <div class="reader-controls">
+            <button class="btn btn-secondary btn-small" id="playBtn" onclick="togglePlay()">▶ Play</button>
+            <button class="btn btn-secondary btn-small" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+          </div>
+        </div>
+        <div class="passage" id="passage">
+          <p style="color:var(--text2); font-style:italic">Click "Generate Passage" to create a reading passage from 50 randomly selected vocabulary words.</p>
+        </div>
+        <hr class="passage-divider">
+        <div class="translation" id="translation">
+          <p style="color:var(--text2); font-style:italic">English translation will appear here.</p>
+        </div>
+      </div>
+      
+      <!-- Library -->
+      <div class="library">
+        <h2>📚 Saved Passages</h2>
+        <div class="library-grid" id="libraryGrid">
+          <div class="library-empty">No saved passages yet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()">⛶</button>
+<div class="toast" id="toast"></div>
+
+<script>
+// ============= STATE =============
+let vocab = [];
+let selectedWords = [];
+let currentResult = null; // { japanese, english, used }
+let isPlaying = false;
+let currentParagraphIdx = -1;
+let speechSynth = window.speechSynthesis;
+let speechQueue = [];
+let isPaused = false;
+
+// ============= INIT =============
+async function init() {
+  try {
+    const res = await fetch('n3_vocab.json');
+    vocab = await res.json();
+    document.getElementById('vocabCount').textContent = `${vocab.length} words loaded`;
+    document.getElementById('status').textContent = `Ready — ${vocab.length} words available`;
+    loadLibrary();
+  } catch(e) {
+    document.getElementById('status').textContent = '⚠ Failed to load vocab data';
+    console.error(e);
+  }
+}
+init();
+
+// ============= VOCAB SELECTION =============
+function selectRandomWords(count = 50) {
+  const shuffled = [...vocab];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  selectedWords = shuffled.slice(0, count);
+  renderChips([]);
+  updateUsedCount([]);
+  document.getElementById('status').textContent = `Selected ${selectedWords.length} new words`;
+}
+
+function renderChips(usedSet) {
+  const container = document.getElementById('chips');
+  container.innerHTML = selectedWords.map((w, i) => {
+    const isUsed = usedSet.includes(i);
+    const displayKana = w.hiragana.length > 8 ? w.hiragana.substring(0,7)+'…' : w.hiragana;
+    const displayKanji = w.kanji || w.hiragana;
+    return `<div class="chip ${isUsed ? 'found' : 'not-found'}" title="${w.english}">
+      <span class="chip-kanji">${displayKanji}</span>
+      <span class="chip-kana">${isUsed ? displayKana : ''}</span>
+      <span class="chip-tooltip">${w.english}</span>
+    </div>`;
+  }).join('');
+}
+
+function updateUsedCount(usedIndices) {
+  const used = selectedWords.filter((_, i) => usedIndices.includes(i)).length;
+  document.getElementById('usedCount').textContent = used;
+}
+
+// ============= PASSAGE GENERATION =============
+async function generate() {
+  if (vocab.length === 0) {
+    showToast('⚠ Vocab data not loaded yet');
+    return;
+  }
+  selectRandomWords(50);
+  await callGroq();
+}
+
+async function regenerate() {
+  if (selectedWords.length === 0) {
+    showToast('⚠ No words selected');
+    return;
+  }
+  await callGroq();
+}
+
+async function newWords() {
+  selectRandomWords(50);
+  await callGroq();
+}
+
+async function callGroq() {
+  const genBtn = document.getElementById('generateBtn');
+  genBtn.disabled = true;
+  document.getElementById('status').textContent = '⏳ Generating passage...';
+  document.getElementById('passage').innerHTML = '<div class="loading"><div class="spinner"></div> Generating...</div>';
+  document.getElementById('translation').innerHTML = '';
+  
+  // Build word list
+  const wordList = selectedWords.map((w, i) => 
+    `  ${i+1}. ${w.kanji || '(no kanji)'} (${w.hiragana}) — ${w.english}`
+  ).join('\n');
+  
+  const prompt = `You are a Japanese language teacher. Write a long connected passage at N3 level that naturally incorporates the following 50 vocabulary words:
+
+${wordList}
+
+Rules:
+- Use every word at least once; if too many, use at least 90%
+- Naturally weave the words into a coherent passage
+- Add furigana in the format 愛(あい) for vocabulary words only
+- Keep grammar and vocabulary strictly at N3 level
+- Write 4-6 Japanese paragraphs separated by newlines
+- After the Japanese text, add a line with just "---", then a full English translation
+- Each paragraph should be 2-4 sentences`;
+
+  try {
+    const response = await fetch('/api/groq', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: 'You are a Japanese language teacher creating N3-level reading passages.' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 4000,
+        temperature: 0.7,
+      })
+    });
+    
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`API error: ${err}`);
+    }
+    
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error('No content in response');
+    
+    // Parse response
+    const parts = content.split('---');
+    const japanese = parts[0]?.trim() || '';
+    const english = parts[1]?.trim() || '';
+    
+    currentResult = { japanese, english };
+    
+    // Find which words were used
+    const usedIndices = [];
+    selectedWords.forEach((w, i) => {
+      const searchText = w.kanji || w.hiragana;
+      if (japanese.includes(searchText)) {
+        usedIndices.push(i);
+      }
+    });
+    
+    renderChips(usedIndices);
+    updateUsedCount(usedIndices);
+    document.getElementById('status').textContent = `✅ Generated — ${usedIndices.length}/50 words found in passage`;
+    
+    renderPassage(japanese, english);
+  } catch (e) {
+    document.getElementById('status').textContent = '⚠ Generation failed';
+    document.getElementById('passage').innerHTML = `<p style="color:var(--accent)">Error: ${e.message}</p>`;
+    console.error(e);
+  } finally {
+    genBtn.disabled = false;
+  }
+}
+
+// ============= RENDERING =============
+function renderPassage(japanese, english) {
+  const furiganaOn = document.getElementById('furiganaToggle').checked;
+  
+  // Split into paragraphs
+  const jpParagraphs = japanese.split(/\n+/).filter(p => p.trim());
+  
+  let html = '';
+  jpParagraphs.forEach((para, idx) => {
+    let text = para.trim();
+    if (!text) return;
+    
+    if (furiganaOn) {
+      text = applyFurigana(text);
+    }
+    
+    html += `<div class="jp-text" data-paragraph="${idx}" onclick="playParagraph(${idx})">${text}</div>`;
+  });
+  
+  document.getElementById('passage').innerHTML = html;
+  
+  // Render English
+  const engParagraphs = english.split(/\n+/).filter(p => p.trim());
+  document.getElementById('translation').innerHTML = engParagraphs.map(p => `<p>${p}</p>`).join('');
+}
+
+function applyFurigana(text) {
+  // Replace patterns like 愛(あい) with <ruby>愛<rt>あい</rt></ruby>
+  return text.replace(/([一-龯々〆〤]+)\(([\u3040-\u309F\u30A0-\u30FFー]+)\)/g, 
+    '<ruby>$1<rt>$2</rt></ruby>');
+}
+
+function toggleFurigana() {
+  if (currentResult) {
+    renderPassage(currentResult.japanese, currentResult.english);
+  }
+}
+
+// ============= AUDIO =============
+function playParagraph(idx) {
+  if (!currentResult) return;
+  
+  const paragraphs = currentResult.japanese.split(/\n+/).filter(p => p.trim());
+  if (idx >= paragraphs.length) return;
+  
+  // Stop any current speech
+  speechSynth.cancel();
+  isPlaying = false;
+  
+  // Clear highlights
+  document.querySelectorAll('.jp-text').forEach(el => el.classList.remove('speaking'));
+  
+  // Build queue from this paragraph onward
+  speechQueue = paragraphs.slice(idx);
+  currentParagraphIdx = idx;
+  
+  speakNext();
+}
+
+function speakNext() {
+  if (speechQueue.length === 0) {
+    isPlaying = false;
+    document.getElementById('playBtn').textContent = '▶ Play';
+    return;
+  }
+  
+  const text = speechQueue.shift();
+  const currentIdx = currentParagraphIdx;
+  currentParagraphIdx++;
+  
+  // Highlight
+  document.querySelectorAll('.jp-text').forEach(el => {
+    el.classList.remove('speaking');
+    if (parseInt(el.dataset.paragraph) === currentIdx) {
+      el.classList.add('speaking');
+    }
+  });
+  
+  // Strip ruby tags for speech
+  const cleanText = text.replace(/<[^>]*>/g, '');
+  
+  const utterance = new SpeechSynthesisUtterance(cleanText);
+  utterance.lang = 'ja-JP';
+  utterance.rate = 0.85;
+  utterance.pitch = 1.0;
+  
+  utterance.onend = () => {
+    if (isPlaying) speakNext();
+  };
+  
+  utterance.onerror = (e) => {
+    console.error('Speech error:', e);
+    if (isPlaying) speakNext();
+  };
+  
+  isPlaying = true;
+  document.getElementById('playBtn').textContent = '⏸ Pause';
+  speechSynth.speak(utterance);
+}
+
+function togglePlay() {
+  if (isPlaying) {
+    if (speechSynth.speaking) {
+      speechSynth.pause();
+      isPaused = true;
+      document.getElementById('playBtn').textContent = '▶ Resume';
+    } else {
+      speechSynth.resume();
+      isPaused = false;
+      document.getElementById('playBtn').textContent = '⏸ Pause';
+    }
+  } else {
+    // Start from first paragraph
+    playParagraph(0);
+  }
+}
+
+// ============= COPY =============
+function copyPassage() {
+  if (!currentResult) {
+    showToast('⚠ No passage to copy');
+    return;
+  }
+  const text = currentResult.japanese + '\n\n---\n\n' + currentResult.english;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('✅ Copied to clipboard');
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✅ Copied to clipboard');
+  });
+}
+
+// ============= LIBRARY =============
+function saveToLibrary() {
+  if (!currentResult) {
+    showToast('⚠ No passage to save');
+    return;
+  }
+  
+  const library = JSON.parse(localStorage.getItem('vocab_passage_library') || '[]');
+  library.unshift({
+    id: Date.now(),
+    date: new Date().toISOString(),
+    japanese: currentResult.japanese,
+    english: currentResult.english,
+    words: selectedWords.map(w => w.kanji || w.hiragana),
+    count: parseInt(document.getElementById('usedCount').textContent)
+  });
+  
+  localStorage.setItem('vocab_passage_library', JSON.stringify(library));
+  showToast('💾 Saved to library!');
+  loadLibrary();
+}
+
+function loadLibrary() {
+  const library = JSON.parse(localStorage.getItem('vocab_passage_library') || '[]');
+  const grid = document.getElementById('libraryGrid');
+  
+  if (library.length === 0) {
+    grid.innerHTML = '<div class="library-empty">No saved passages yet.</div>';
+    return;
+  }
+  
+  grid.innerHTML = library.map(item => {
+    const date = new Date(item.date).toLocaleDateString();
+    const preview = item.japanese.replace(/<[^>]*>/g, '').substring(0, 80);
+    const wordList = item.words?.slice(0, 5).join(', ') || '';
+    return `<div class="library-card" onclick="loadFromLibrary(${item.id})">
+      <span class="lc-delete" onclick="event.stopPropagation();deleteFromLibrary(${item.id})">×</span>
+      <div class="lc-date">${date}</div>
+      <div class="lc-preview">${preview}…</div>
+      <div class="lc-count">${item.count || '?'}/50 words</div>
+    </div>`;
+  }).join('');
+}
+
+function loadFromLibrary(id) {
+  const library = JSON.parse(localStorage.getItem('vocab_passage_library') || '[]');
+  const item = library.find(i => i.id === id);
+  if (!item) return;
+  
+  currentResult = { japanese: item.japanese, english: item.english };
+  renderPassage(item.japanese, item.english);
+  document.getElementById('status').textContent = `📚 Loaded passage from ${new Date(item.date).toLocaleDateString()}`;
+  document.getElementById('usedCount').textContent = item.count || '?';
+  showToast('📚 Passage loaded');
+}
+
+function deleteFromLibrary(id) {
+  let library = JSON.parse(localStorage.getItem('vocab_passage_library') || '[]');
+  library = library.filter(i => i.id !== id);
+  localStorage.setItem('vocab_passage_library', JSON.stringify(library));
+  loadLibrary();
+  showToast('🗑 Deleted');
+}
+
+// ============= FULLSCREEN =============
+function toggleFullscreen() {
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+    document.getElementById('fullscreenBtn').classList.remove('visible');
+  } else {
+    document.documentElement.requestFullscreen();
+    document.getElementById('fullscreenBtn').classList.add('visible');
+  }
+}
+
+// ============= TOAST =============
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// ============= KEYBOARD SHORTCUTS =============
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'g' && !e.ctrlKey && !e.metaKey) generate();
+  if (e.key === 'r' && !e.ctrlKey && !e.metaKey) regenerate();
+  if (e.key === 'n' && !e.ctrlKey && !e.metaKey) newWords();
+  if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Word/PDF source files
+VocabList.N3.docx
+
+# Extraction scripts (only needed once)
+extract_n3_vocab.py
+extract_from_docx.py
