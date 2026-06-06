@@ -351,7 +351,10 @@ Rules:
   } catch (e) {
     let errorMsg = e.message;
     if (errorMsg.includes('rate_limit_exceeded') || errorMsg.includes('Rate limit')) {
-      errorMsg = '⏳ Rate limit reached. Please wait a few minutes and try again.';
+      // Extract wait time from error message (e.g., "Please try again in 8m5.568s")
+      const waitMatch = errorMsg.match(/try again in ([\d\.]+m?[\d\.]*s)/);
+      const waitTime = waitMatch ? waitMatch[1] : 'a few minutes';
+      errorMsg = '⏳ Rate limit reached. Please wait ' + waitTime + ' and try again.';
     }
     document.getElementById('status').textContent = '⚠ Generation failed';
     document.getElementById('passage').innerHTML = '<p style="color:var(--accent)">Error: ' + errorMsg + '</p>';
