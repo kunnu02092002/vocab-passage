@@ -354,7 +354,13 @@ Do NOT output any thinking, planning, or "Let's draft..." text. Start directly w
     const content = data.choices?.[0]?.message?.content;
     if (!content) throw new Error('No content in response');
 
-    const { japanese, english } = splitJapaneseEnglish(content);
+    let { japanese, english } = splitJapaneseEnglish(content);
+
+    // Defensive cleanup: if the model leaked any chain-of-thought / planning
+    // text before the actual Japanese passage, strip it. Drop any leading
+    // non-Japanese lines (e.g., "Let's draft paragraph by paragraph...").
+    japanese = stripLeadingNonJapanese(japanese);
+
 
     currentResult = { japanese, english };
 
@@ -530,7 +536,23 @@ function splitJapaneseEnglish(content) {
 
 
 
+function stripLeadingNonJapanese(text) {
+  // Drop any leading lines that don't contain Japanese characters. This
+  // cleans up model output like "Let's draft paragraph by paragraph..." that
+  // sometimes leaks into the start of the Japanese section.
+  const lines = text.split('\n');
+  let startIdx = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const t = lines[i].trim();
+    if (!t) continue; // skip blank lines
+    if (/[\u3040-\u30FF\u4E00-\u9FAF]/.test(t)) break;
+    startIdx = i + 1;
+  }
+  return lines.slice(startIdx).join('\n').trim();
+}
+
 function applyFurigana(text) {
+
 
   // Wrap kanji(reading) in <ruby> tags
   return text.replace(/([一-龯々〆〤]+)\(([\u3040-\u309F\u30A0-\u30FFー]+)\)/g, '<ruby>$1<rt>$2</rt></ruby>');
