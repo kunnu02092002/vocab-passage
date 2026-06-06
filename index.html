@@ -289,20 +289,20 @@ async function callGroq() {
     `  ${i+1}. ${w.kanji || '(no kanji)'} (${w.hiragana}) — ${w.english}`
   ).join('\n');
 
-  const prompt = `You are a Japanese language teacher. Write a LONG, DETAILED connected passage at N3 level that naturally incorporates the following 50 vocabulary words:
+  const prompt = `You are a Japanese language teacher. Write a VERY LONG, DETAILED connected passage at N3 level that naturally incorporates the following 50 vocabulary words:
 
 ${wordList}
 
 Rules:
-- Use every word at least once; if too many, use at least 90%
+- Use EVERY word at least once (aim for 100% usage)
 - Naturally weave the words into a coherent, rich passage (like a short story or essay)
 - Add furigana in the format 愛(あい) for vocabulary words only
 - Keep grammar and vocabulary strictly at N3 level
-- Write 7-10 Japanese paragraphs separated by newlines (much longer than a short passage)
-- Each paragraph should be 4-6 sentences
+- Write 12-15 Japanese paragraphs separated by newlines (much longer than a short passage)
+- Each paragraph should be 6-8 sentences
 - Make the passage engaging and story-like, with clear narrative flow
 - After the Japanese text, add a line with just "---", then a full English translation (one paragraph per Japanese paragraph)
-- Aim for 1500-2500 Japanese characters total`;
+- Aim for 3000-4000 Japanese characters total`;
 
   try {
     const response = await fetch('/api/groq', {
@@ -313,7 +313,7 @@ Rules:
           { role: 'system', content: 'You are a Japanese language teacher creating N3-level reading passages.' },
           { role: 'user', content: prompt }
         ],
-        max_tokens: 6000,
+        max_tokens: 8000,
         temperature: 0.7,
       })
     });
