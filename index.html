@@ -177,7 +177,8 @@
       <div class="panel-group">
         <label>Status</label>
         <div class="status" id="status">Ready — click Generate</div>
-        <div class="status">📝 Words used: <strong id="usedCount">0</strong>/50</div>
+        <div class="status">📝 Words used: <strong id="usedCount">0</strong>/20</div>
+
       </div>
 
       <div class="panel-group">
@@ -188,7 +189,8 @@
 
     <div>
       <div class="vocab-strip">
-        <div class="strip-label">📌 Selected Vocabulary (50 words)</div>
+        <div class="strip-label">📌 Selected Vocabulary (20 words)</div>
+
         <div class="chips" id="chips"><span style="color:var(--text2);font-size:.95rem">Generate to populate</span></div>
       </div>
 
@@ -201,7 +203,8 @@
           </div>
         </div>
         <div class="passage" id="passage">
-          <p style="color:var(--text2); font-style:italic">Click "Generate Passage" to create a long, detailed reading passage from 50 randomly selected vocabulary words.</p>
+          <p style="color:var(--text2); font-style:italic">Click "Generate Passage" to create a long, detailed reading passage from 20 randomly selected vocabulary words.</p>
+
         </div>
         <hr class="passage-divider">
         <div class="translation" id="translation">
@@ -247,7 +250,8 @@ async function init() {
 }
 init();
 
-function selectRandomWords(count = 50) {
+function selectRandomWords(count = 20) {
+
   const shuffled = [...vocab];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -280,7 +284,7 @@ function updateUsedCount(usedIndices) {
 
 async function generate() {
   if (vocab.length === 0) { showToast('⚠ Vocab data not loaded yet'); return; }
-  selectRandomWords(50);
+  selectRandomWords(20);
   await callGroq();
 }
 
@@ -290,9 +294,10 @@ async function regenerate() {
 }
 
 async function newWords() {
-  selectRandomWords(50);
+  selectRandomWords(20);
   await callGroq();
 }
+
 
 async function callGroq() {
   const genBtn = document.getElementById('generateBtn');
@@ -305,9 +310,9 @@ async function callGroq() {
     `  ${i+1}. ${w.kanji || '(no kanji)'} (${w.hiragana}) — ${w.english}`
   ).join('\n');
 
-  const prompt = `You are a Japanese language teacher creating a short N3-level Japanese reading passage that uses all 50 of the given vocabulary words, plus its English translation.
+  const prompt = `You are a Japanese language teacher creating a short N3-level Japanese reading passage that uses all 20 of the given vocabulary words, plus its English translation.
 
-Vocabulary to use (all 50 must appear in the Japanese portion):
+Vocabulary to use (all 20 must appear in the Japanese portion):
 ${wordList}
 
 Rules:
@@ -315,8 +320,9 @@ Rules:
 - Weave the words into a coherent short story
 - Add furigana in the format 愛(あい) ONLY for words that have kanji — do NOT add furigana for words already in hiragana/katakana
 - Keep grammar and vocabulary at N3 level
-- 6-8 Japanese paragraphs, 3-5 sentences each, blank line between paragraphs
-- Aim for 1500-2000 Japanese characters total
+- 4-6 Japanese paragraphs, 2-4 sentences each, blank line between paragraphs
+- Aim for 700-1000 Japanese characters total
+
 
 OUTPUT FORMAT: You must return a JSON object with exactly two fields:
 {
@@ -394,7 +400,8 @@ No other text. No preamble. No explanation. No chain-of-thought. ONLY the JSON o
 
     renderChips(currentUsedIndices);
     updateUsedCount(currentUsedIndices);
-    document.getElementById('status').textContent = '✅ Generated — ' + currentUsedIndices.length + '/50 words found';
+    document.getElementById('status').textContent = '✅ Generated — ' + currentUsedIndices.length + '/20 words found';
+
 
     renderPassage(japanese, english);
   } catch (e) {
@@ -404,7 +411,8 @@ No other text. No preamble. No explanation. No chain-of-thought. ONLY the JSON o
       const waitTime = waitMatch ? waitMatch[1] : 'a few minutes';
       errorMsg = '⏳ Rate limit reached. Please wait ' + waitTime + ' and try again.';
     } else if (errorMsg.includes('timed out') || errorMsg.includes('Task timed out') || errorMsg.includes('Sandbox.Timedout')) {
-      errorMsg = '⏳ Generation took too long (over 26s). The model is probably busy. Click Regenerate to try again, or click New Words for a different 50-word set.';
+      errorMsg = '⏳ Generation took too long (over 26s). The model is probably busy. Click Regenerate to try again, or click New Words for a different 20-word set.';
+
     }
     document.getElementById('status').textContent = '⚠ Generation failed';
     document.getElementById('passage').innerHTML = '<p style="color:var(--accent)">Error: ' + errorMsg + '</p>';
@@ -673,7 +681,8 @@ function loadLibrary() {
   grid.innerHTML = library.map(item => {
     const date = new Date(item.date).toLocaleDateString();
     const preview = item.japanese.replace(/<[^>]*>/g, '').substring(0, 80);
-    return '<div class="library-card" onclick="loadFromLibrary(' + item.id + ')"><span class="lc-delete" onclick="event.stopPropagation();deleteFromLibrary(' + item.id + ')">×</span><div class="lc-date">' + date + '</div><div class="lc-preview">' + preview + '…</div><div class="lc-count">' + (item.count || '?') + '/50 words</div></div>';
+    return '<div class="library-card" onclick="loadFromLibrary(' + item.id + ')"><span class="lc-delete" onclick="event.stopPropagation();deleteFromLibrary(' + item.id + ')">×</span><div class="lc-date">' + date + '</div><div class="lc-preview">' + preview + '…</div><div class="lc-count">' + (item.count || '?') + '/20 words</div></div>';
+
   }).join('');
 }
 
