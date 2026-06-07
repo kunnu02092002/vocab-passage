@@ -15,7 +15,7 @@
     --text2: #4b5563;
     --gray: #d1d5db;
     --highlight: #fef3c7;
-    --mark: #fde68a;
+    --mark: #d4f6d4;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -92,10 +92,13 @@
   .translation mark.vocab-hit {
     background: var(--mark);
     color: var(--text);
-    padding: 2px 4px;
-    border-radius: 4px;
+    padding: 1px 3px;
+    border-radius: 3px;
     font-weight: 600;
     box-shadow: 0 0 0 1px var(--gold);
+    /* Prevent overlap with ruby annotations */
+    line-height: 1.2;
+    vertical-align: baseline;
   }
 
   /* Fullscreen — only applies to .reader */
