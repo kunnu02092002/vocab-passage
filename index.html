@@ -341,19 +341,38 @@ No other text. No preamble. No explanation. No chain-of-thought. ONLY the JSON o
 
 
   try {
-    const response = await fetch('/api/groq', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [
-          { role: 'system', content: 'You are a Japanese language teacher creating N3-level reading passages.' },
-          { role: 'user', content: prompt }
-        ],
-        max_tokens: 4000,
-        temperature: 0.7,
-        provider: currentProvider,
-      })
-    });
+    // Try the /api/groq endpoint — works on Vercel by default. If the
+    // deployment is on Netlify, the netlify.toml redirect rules map
+    // /api/groq -> /.netlify/functions/groq, so this also works there.
+    // Falls back to the .netlify/functions path explicitly if needed.
+    const endpoints = ['/api/groq', '/.netlify/functions/groq'];
+    let response;
+    let lastErr;
+    for (const url of endpoints) {
+      try {
+        response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [
+              { role: 'system', content: 'You are a Japanese language teacher creating N3-level reading passages.' },
+              { role: 'user', content: prompt }
+            ],
+            max_tokens: 4000,
+            temperature: 0.7,
+            provider: currentProvider,
+          })
+        });
+        if (response.ok || response.status < 500) break; // success or non-retryable error
+      } catch (e) {
+        lastErr = e;
+        // try next endpoint
+      }
+    }
+    if (!response) {
+      throw new Error('API unreachable on both /api/groq and /.netlify/functions/groq: ' + (lastErr?.message || 'unknown'));
+    }
+
 
 
 
