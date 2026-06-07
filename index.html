@@ -659,7 +659,9 @@ function speakNext() {
     el.classList.remove('speaking');
     if (parseInt(el.dataset.paragraph) === currentIdx) el.classList.add('speaking');
   });
-  const cleanText = text.replace(/<[^>]*>/g, '');
+  // Strip furigana (content inside <rt> tags) AND all HTML tags
+  // so TTS only reads the kanji, not the pronunciation guide.
+  const cleanText = text.replace(/<rt[^>]*>.*?<\/rt>/gs, '').replace(/<[^>]*>/g, '').replace(/\([^)]*\)/g, '');
   const utterance = new SpeechSynthesisUtterance(cleanText);
   utterance.lang = 'ja-JP';
   utterance.rate = 0.85;
